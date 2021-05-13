@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,7 +19,8 @@ namespace SIServer.Services
             var lista=new List<string>();
             foreach(string s in document)
             {
-                lista.Append(st.Stem(s).Value);
+                var stemmed=st.Stem(s);
+                lista.Add(stemmed.Value);
             }
             return lista.ToArray();
         }
@@ -30,11 +32,20 @@ namespace SIServer.Services
             var indiceFrom=document.IndexOf(fromHeader);
             var indiceFromFinal=document.IndexOf('\n',indiceFrom);
 
-            var indiceSubject=document.IndexOf(subjectHeader, indiceFromFinal);
+            var indiceSubject=document.IndexOf(subjectHeader);
             var indiceSubjectFinal=document.IndexOf('\n',indiceSubject);
+
+            if(indiceSubjectFinal==-1)
+            {
+                Console.WriteLine("Aquí");
+            }
 
             var longitudFrom=indiceFromFinal-(indiceFrom+fromHeader.Length);
             var longitudSubject=indiceSubjectFinal-(indiceSubject+subjectHeader.Length);
+            if (indiceSubject<0)
+            {
+                longitudSubject=indiceSubjectFinal-(indiceSubject+subjectHeader.Length);
+            }
 
             var From=document.Substring(indiceFrom+fromHeader.Length,longitudFrom);
             var Subject=document.Substring(indiceFrom+subjectHeader.Length,longitudSubject);
@@ -51,6 +62,7 @@ namespace SIServer.Services
         }
         public static string[] Split(string document)
         {
+            string nuevoDoc="";
             char[] separators={
                 ' ',
                 '\n',
@@ -68,8 +80,25 @@ namespace SIServer.Services
                 ')',
                 '|',
                 '\t',
+                '.',
+                ':',
+                '*',
+                '"',
+                '\'',
             };
-            return document.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            var set=new HashSet<char>(separators);
+            nuevoDoc+=document[0];
+            for(int i=1; i<document.Length-1; i++)
+            {
+                if(document[i]=='.'&&!set.Contains(document[i+1])&&!set.Contains(document[i-1]))
+                {
+                    continue;
+                }
+                nuevoDoc+=document[i];
+            }
+            nuevoDoc+=document[document.Length-1];
+
+            return nuevoDoc.Split(separators, StringSplitOptions.RemoveEmptyEntries);
         }
 
         public static string[] Clean(string[] document)
@@ -186,6 +215,15 @@ namespace SIServer.Services
         public static DocumentRepetitionDic Preproccess1(ulong id, string document)
         {
             var desc=GenerateDocumentDescription(id, document);
+            var docDic=GenerateDocumentRepetitionDic(desc);
+            // docDic=UncaseDocumentRepetitionDic(docDic);
+            return docDic;
+        }
+        public static DocumentRepetitionDic PreproccessQuery(string document)
+        {
+            ulong id=0;
+            string nuevoDocument="From:  \n    Subject:  \n\n    "+document;
+            var desc=GenerateDocumentDescription(id, nuevoDocument);
             var docDic=GenerateDocumentRepetitionDic(desc);
             // docDic=UncaseDocumentRepetitionDic(docDic);
             return docDic;
