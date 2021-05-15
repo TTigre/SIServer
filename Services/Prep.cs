@@ -85,12 +85,17 @@ namespace SIServer.Services
                 '*',
                 '"',
                 '\'',
+                '#',
+                '{',
+                '}',
+                '[',
+                ']',
             };
             var set=new HashSet<char>(separators);
             nuevoDoc+=document[0];
             for(int i=1; i<document.Length-1; i++)
             {
-                if(document[i]=='.'&&!set.Contains(document[i+1])&&!set.Contains(document[i-1]))
+                if((document[i]=='.'||document[i]=='-'||document[i]=='_')&&!set.Contains(document[i+1])&&!set.Contains(document[i-1]))
                 {
                     continue;
                 }
@@ -115,6 +120,10 @@ namespace SIServer.Services
                 "with",
                 "which",
                 "&",
+                "in",
+                "on",
+                "at",
+                "with",
             };
             var set=new HashSet<string>(eliminables);
             var lista=new List<string>();

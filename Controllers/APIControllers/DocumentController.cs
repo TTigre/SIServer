@@ -9,6 +9,7 @@ using SIServer.Models;
 using SIServer.Data;
 using System.IO;
 using SIServer.Services;
+using System.Collections.Concurrent;
 
 namespace SIServer.Controllers
 {
@@ -29,6 +30,21 @@ namespace SIServer.Controllers
             await _context.RelevanciaPalabraDocumentos.AddRangeAsync(resultado);
             await _context.SaveChangesAsync();
             return Ok();
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObtenerDocumento(ulong id)
+        {
+            var documentoLINQ=from d in _context.Documents
+                              where d.DocID==id
+                              select d;
+            var documento=documentoLINQ.FirstOrDefault();
+            if(documento==null)
+            {
+                return NotFound();
+            }
+            var st=new FileStream(documento.Ruta,FileMode.Open);
+            return File(st,"text/plain");
+            // throw new FileNotFoundException();
         }
         [HttpGet("Relevancia/Documentos/{query}")]
         public async Task<IActionResult> ObtenerDocumentosRelevantes(string query)
@@ -52,7 +68,12 @@ namespace SIServer.Controllers
 
             var respuesta=Metrics.SimilitudDocumentosConQuery(wQuery, _context);
 
-            return Ok(respuesta);
+            var respuestaFinal=from r in respuesta
+                               from d in _context.Documents
+                               where r.DocumentID==d.DocID
+                               select d;
+
+            return Ok(respuestaFinal);
         }
 
         [HttpGet("Relevancia/Query/{query}")]
@@ -93,6 +114,8 @@ namespace SIServer.Controllers
 
                 var documento=new Document();
                 documento.Ruta=s;
+                documento.From=describer.Descriptor.From;
+                documento.Subject=describer.Descriptor.Subject;
                 await _context.AddAsync(documento);
                 await _context.SaveChangesAsync();
 
